@@ -25,7 +25,7 @@ export default function Sidebar() {
             >
                 <ul className="space-y-1">
                     {routes.map(({ path, name, icon }) => (
-                        <li key={path} className="relative">
+                        <li key={path} className="relative" onClick={(e)=>{e.stopPropagation()}}>
                             <Link
                                 href={path}
                                 className={`flex p-2 rounded transition-colors 
