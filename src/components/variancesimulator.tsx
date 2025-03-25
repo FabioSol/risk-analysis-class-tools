@@ -2,7 +2,15 @@
 
 import {useEffect, useRef, useState, MouseEvent} from 'react';
 import {Line} from 'react-chartjs-2';
-import {CategoryScale, Chart, LinearScale, LineController, LineElement, PointElement, Scale, Tooltip} from 'chart.js';
+import {
+    CategoryScale,
+    Chart,
+    LinearScale,
+    LineController,
+    LineElement,
+    PointElement,
+    Tooltip
+} from 'chart.js';
 
 Chart.register(CategoryScale, LinearScale, LineController, PointElement, LineElement, Tooltip);
 
@@ -117,6 +125,10 @@ export default function MouseMovementSimulator() {
         return () => clearInterval(interval);
     }, [returnMin, returnMax, pointInterval]);
 
+    // Get min and max times from data for x-axis
+    const minTime = data.length > 0 ? data[0].time : 0;
+    const maxTime = data.length > 0 ? data[data.length - 1].time : 100;
+
     const priceChartData = {
         labels: data.map((d) => d.time),
         datasets: [
@@ -146,8 +158,6 @@ export default function MouseMovementSimulator() {
             },
         ],
     };
-
-
 
     return (
         <div className="flex flex-col dark:bg-neutral-900 dark:text-neutral-100 p-6">
@@ -238,14 +248,8 @@ export default function MouseMovementSimulator() {
                                         grid: {
                                             display: false,
                                         },
-                                        max: function(context: { scale: Scale; chart: Chart }): number {
-                                            const labels = context.chart.data.labels as number[];
-                                            return labels && labels.length > 0 ? labels[labels.length - 1] : 100;
-                                        },
-                                        min: function(context: { scale: Scale; chart: Chart }): number {
-                                            const labels = context.chart.data.labels as number[];
-                                            return labels && labels.length > 0 ? labels[0] : 0;
-                                        },
+                                        min: minTime,
+                                        max: maxTime
                                     },
                                     y: {
                                         min: priceMin,
@@ -284,14 +288,8 @@ export default function MouseMovementSimulator() {
                                         grid: {
                                             display: false,
                                         },
-                                        min: function(context: { scale: Scale; chart: Chart }) {
-                                            const labels = context.chart.data.labels as number[];
-                                            return labels && labels.length > 0 ? labels[0] : 0;
-                                        },
-                                        max: function(context: { scale: Scale; chart: Chart }) {
-                                            const labels = context.chart.data.labels as number[];
-                                            return labels && labels.length > 0 ? labels[labels.length - 1] : 100;
-                                        },
+                                        min: minTime,
+                                        max: maxTime
                                     },
                                     y: {
                                         min: returnMin,
