@@ -3,12 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Info, Mail } from "lucide-react";
+import { Home, Info, Mail, LineChart } from "lucide-react";
 import { motion } from "framer-motion";
+
 
 const routes = [
     { path: "/", name: "Home", icon: <Home size={24} /> },
     { path: "/about", name: "About", icon: <Info size={24} /> },
+    { path: "/variance-simulator", name: "Variance Simulator", icon: <LineChart size={24} /> },
     { path: "/contact", name: "Contact", icon: <Mail size={24} /> },
 ];
 

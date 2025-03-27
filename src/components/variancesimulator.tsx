@@ -9,8 +9,9 @@ import {
     LineController,
     LineElement,
     PointElement,
-    Tooltip
+    Tooltip,
 } from 'chart.js';
+import VarianceModels from './variancemodels';
 
 Chart.register(CategoryScale, LinearScale, LineController, PointElement, LineElement, Tooltip);
 
@@ -25,16 +26,18 @@ interface ReturnPoint {
 }
 
 // This component will focus on price and returns generation
-// The variance models will be implemented separately
 export default function MouseMovementSimulator() {
-    const priceRange = { min: 500, max: 700 }; // Set the range for price (Y-axis values)
-    const returnRange = { min: -10, max: 10 }; // Set the range for returns - more reasonable for log returns
+    const priceRange = {min: 100, max: 700}; // Set the range for price (Y-axis values)
+    const returnRange = {min: -50, max: 50}; // Set the range for returns - more reasonable for log returns
 
     const [priceMin, setPriceMin] = useState<number>(priceRange.min);
     const [priceMax, setPriceMax] = useState<number>(priceRange.max);
     // Initialize with proper ranges for log returns
     const [returnMin, setReturnMin] = useState<number>(returnRange.min);
     const [returnMax, setReturnMax] = useState<number>(returnRange.max);
+
+    // Add simulation running state
+    const [isRunning, setIsRunning] = useState<boolean>(true);
 
     // Store the last processed price to calculate accurate returns
     const lastProcessedPriceRef = useRef<number>(priceMin + (priceMax - priceMin) / 2);
@@ -53,6 +56,11 @@ export default function MouseMovementSimulator() {
     const mouseYRef = useRef<number>(priceMin + (priceMax - priceMin) / 2); // Start at middle of range
     const pointsPerSecond = 10;
     const pointInterval = 1000 / pointsPerSecond; // Interval between points in ms
+
+    // Function to toggle simulation
+    const toggleSimulation = () => {
+        setIsRunning(prev => !prev);
+    };
 
     // Track mouse position continuously
     const handleMouseMove = (event: MouseEvent<HTMLDivElement>) => {
@@ -90,40 +98,46 @@ export default function MouseMovementSimulator() {
 
     // Add data points at regular intervals (10 points per second)
     useEffect(() => {
-        const interval = setInterval(() => {
-            timeRef.current += 1;
-            const currentTime = timeRef.current;
+        let interval: NodeJS.Timeout | null = null;
 
-            // Get the current price from mouse position
-            const currentPrice = mouseYRef.current;
+        if (isRunning) {
+            interval = setInterval(() => {
+                timeRef.current += 1;
+                const currentTime = timeRef.current;
 
-            // Use the stored last processed price for accurate return calculation
-            const previousPrice = lastProcessedPriceRef.current;
+                // Get the current price from mouse position
+                const currentPrice = mouseYRef.current;
 
-            // Calculate log returns
-            let returnValue = 0;
-            if (previousPrice > 0 && currentPrice > 0) {
-                returnValue = Math.log(currentPrice / previousPrice) * 100;
-                returnValue = Math.min(Math.max(returnValue, returnMin), returnMax);
-            }
+                // Use the stored last processed price for accurate return calculation
+                const previousPrice = lastProcessedPriceRef.current;
 
-            // Store the current price for the next iteration
-            lastProcessedPriceRef.current = currentPrice;
+                // Calculate log returns
+                let returnValue = 0;
+                if (previousPrice > 0 && currentPrice > 0) {
+                    returnValue = Math.log(currentPrice / previousPrice) * 100;
+                    returnValue = Math.min(Math.max(returnValue, returnMin), returnMax);
+                }
 
-            // Update price data
-            setData(prev => {
-                return [...prev.slice(1), { time: currentTime, value: currentPrice }];
-            });
+                // Store the current price for the next iteration
+                lastProcessedPriceRef.current = currentPrice;
 
-            // Update returns data
-            setReturns(prev => {
-                return [...prev.slice(1), { time: currentTime, value: returnValue }];
-            });
+                // Update price data
+                setData(prev => {
+                    return [...prev.slice(1), {time: currentTime, value: currentPrice}];
+                });
 
-        }, pointInterval);
+                // Update returns data
+                setReturns(prev => {
+                    return [...prev.slice(1), {time: currentTime, value: returnValue}];
+                });
 
-        return () => clearInterval(interval);
-    }, [returnMin, returnMax, pointInterval]);
+            }, pointInterval);
+        }
+
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [returnMin, returnMax, pointInterval, isRunning]);
 
     // Get min and max times from data for x-axis
     const minTime = data.length > 0 ? data[0].time : 0;
@@ -160,180 +174,197 @@ export default function MouseMovementSimulator() {
     };
 
     return (
-        <div className="flex flex-col dark:bg-neutral-900 dark:text-neutral-100 p-6">
-            <h1 className="text-3xl font-bold mb-4">Financial Time Series Simulator</h1>
+        <div className="flex flex-wrap w-full">
+            {/* Left column for controls and charts */}
+            <div className="w-full lg:w-1/2 pr-0 lg:pr-4">
+                {/* Controls section */}
+                <div className="bg-white dark:bg-neutral-800 p-4 rounded-lg shadow-lg mb-4">
+                    <div className="flex justify-between items-center mb-3">
+                        <h2 className="text-xl font-semibold text-gray-800 dark:text-neutral-300">Simulation Controls</h2>
 
-            <div className="flex flex-wrap w-full">
-                {/* Left column for controls and charts */}
-                <div className="w-full lg:w-1/2 pr-0 lg:pr-4">
-                    {/* Controls section */}
-                    <div className="bg-neutral-800 p-4 rounded-lg shadow-lg mb-4">
-                        <h2 className="text-xl font-semibold mb-3 text-neutral-300">Simulation Controls</h2>
+                        {/* Play/Pause Button */}
+                        <button
+                            onClick={toggleSimulation}
+                            className={`px-4 py-1 rounded flex items-center ${
+                                isRunning
+                                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                                    : 'bg-green-600 hover:bg-green-700 text-white'
+                            }`}
+                        >
+                            {isRunning ? (
+                                <>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                        <rect x="6" y="4" width="3" height="12" rx="1" />
+                                        <rect x="11" y="4" width="3" height="12" rx="1" />
+                                    </svg>
+                                    Pause
+                                </>
+                            ) : (
+                                <>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                                    </svg>
+                                    Play
+                                </>
+                            )}
+                        </button>
+                    </div>
 
-                        <div className="flex flex-wrap gap-4">
-                            <div className="flex-1 min-w-[200px]">
-                                <h3 className="text-md font-semibold mb-2 text-neutral-300">Price Range</h3>
-                                <div className="flex gap-2">
-                                    <div>
-                                        <label className="block text-sm text-neutral-400">Min</label>
-                                        <input
-                                            type="number"
-                                            value={priceMin}
-                                            onChange={(e) => setPriceMin(Number(e.target.value))}
-                                            className="w-full px-2 py-1 bg-neutral-700 border border-neutral-600 rounded text-white"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm text-neutral-400">Max</label>
-                                        <input
-                                            type="number"
-                                            value={priceMax}
-                                            onChange={(e) => setPriceMax(Number(e.target.value))}
-                                            className="w-full px-2 py-1 bg-neutral-700 border border-neutral-600 rounded text-white"
-                                        />
-                                    </div>
+                    <div className="flex flex-wrap gap-4">
+                        <div className="flex-1 min-w-[200px]">
+                            <h3 className="text-md font-semibold mb-2 text-gray-700 dark:text-neutral-300">Price Range</h3>
+                            <div className="flex gap-2">
+                                <div>
+                                    <label className="block text-sm text-gray-600 dark:text-neutral-400">Min</label>
+                                    <input
+                                        type="number"
+                                        value={priceMin}
+                                        onChange={(e) => setPriceMin(Number(e.target.value))}
+                                        className="w-full px-2 py-1 bg-white dark:bg-neutral-700 border border-gray-300 dark:border-neutral-600 rounded text-gray-900 dark:text-white"
+                                    />
                                 </div>
-                            </div>
-
-                            <div className="flex-1 min-w-[200px]">
-                                <h3 className="text-md font-semibold mb-2 text-neutral-300">Log Return Range (%)</h3>
-                                <div className="flex gap-2">
-                                    <div>
-                                        <label className="block text-sm text-neutral-400">Min</label>
-                                        <input
-                                            type="number"
-                                            value={returnMin}
-                                            min="-20"
-                                            max="0"
-                                            onChange={(e) => setReturnMin(Number(e.target.value))}
-                                            className="w-full px-2 py-1 bg-neutral-700 border border-neutral-600 rounded text-white"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm text-neutral-400">Max</label>
-                                        <input
-                                            type="number"
-                                            value={returnMax}
-                                            min="0"
-                                            max="20"
-                                            onChange={(e) => setReturnMax(Number(e.target.value))}
-                                            className="w-full px-2 py-1 bg-neutral-700 border border-neutral-600 rounded text-white"
-                                        />
-                                    </div>
+                                <div>
+                                    <label className="block text-sm text-gray-600 dark:text-neutral-400">Max</label>
+                                    <input
+                                        type="number"
+                                        value={priceMax}
+                                        onChange={(e) => setPriceMax(Number(e.target.value))}
+                                        className="w-full px-2 py-1 bg-white dark:bg-neutral-700 border border-gray-300 dark:border-neutral-600 rounded text-gray-900 dark:text-white"
+                                    />
                                 </div>
                             </div>
                         </div>
 
-                        <div className="mt-3">
-                            <p className="text-neutral-400">Move your mouse within the price chart to simulate price movements. The simulation generates 10 data points per second.</p>
+                        <div className="flex-1 min-w-[200px]">
+                            <h3 className="text-md font-semibold mb-2 text-gray-700 dark:text-neutral-300">Log Return Range (%)</h3>
+                            <div className="flex gap-2">
+                                <div>
+                                    <label className="block text-sm text-gray-600 dark:text-neutral-400">Min</label>
+                                    <input
+                                        type="number"
+                                        value={returnMin}
+                                        min="-20"
+                                        max="0"
+                                        onChange={(e) => setReturnMin(Number(e.target.value))}
+                                        className="w-full px-2 py-1 bg-white dark:bg-neutral-700 border border-gray-300 dark:border-neutral-600 rounded text-gray-900 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-600 dark:text-neutral-400">Max</label>
+                                    <input
+                                        type="number"
+                                        value={returnMax}
+                                        min="0"
+                                        max="20"
+                                        onChange={(e) => setReturnMax(Number(e.target.value))}
+                                        className="w-full px-2 py-1 bg-white dark:bg-neutral-700 border border-gray-300 dark:border-neutral-600 rounded text-gray-900 dark:text-white"
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Price Chart */}
-                    <div className="bg-neutral-800 p-4 rounded-lg shadow-lg mb-4 flex flex-col"
-                         onMouseMove={handleMouseMove}
-                         ref={panelRef}
-                         style={{ height: '300px' }}
-                    >
-                        <h2 className="text-lg font-semibold mb-1 text-neutral-300">Price Chart</h2>
-                        <div className="flex-grow w-full h-full">
-                            <Line data={priceChartData} options={{
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                scales: {
-                                    x: {
-                                        type: 'linear',
-                                        position: 'bottom',
-                                        display: false,
-                                        grid: {
-                                            display: false,
-                                        },
-                                        min: minTime,
-                                        max: maxTime
-                                    },
-                                    y: {
-                                        min: priceMin,
-                                        max: priceMax,
-                                        grid: {
-                                            color: 'rgba(255, 255, 255, 0.1)',
-                                        }
-                                    },
-                                },
-                                plugins: {
-                                    tooltip: {
-                                        enabled: false,
-                                    },
-                                },
-                                animation: {
-                                    duration: 0
-                                }
-                            }} />
-                        </div>
-                    </div>
-
-                    {/* Returns Chart */}
-                    <div className="bg-neutral-800 p-4 rounded-lg shadow-lg mb-4 flex flex-col"
-                         style={{ height: '300px' }}
-                    >
-                        <h2 className="text-lg font-semibold mb-1 text-neutral-300">Log Returns Chart (%)</h2>
-                        <div className="flex-grow w-full h-full">
-                            <Line data={returnsChartData} options={{
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                scales: {
-                                    x: {
-                                        type: 'linear',
-                                        position: 'bottom',
-                                        display: false,
-                                        grid: {
-                                            display: false,
-                                        },
-                                        min: minTime,
-                                        max: maxTime
-                                    },
-                                    y: {
-                                        min: returnMin,
-                                        max: returnMax,
-                                        grid: {
-                                            color: 'rgba(255, 255, 255, 0.1)',
-                                        },
-                                        ticks: {
-                                            callback: function(value) {
-                                                return value + '%';
-                                            }
-                                        }
-                                    },
-                                },
-                                plugins: {
-                                    tooltip: {
-                                        enabled: false,
-                                    },
-                                },
-                                animation: {
-                                    duration: 0
-                                }
-                            }} />
-                        </div>
+                    <div className="mt-3">
+                        <p className="text-gray-600 dark:text-neutral-400">
+                            {isRunning ?
+                                "Move your mouse within the price chart to simulate price movements. The simulation generates 10 data points per second." :
+                                "Simulation is paused. Click Play to resume data generation."
+                            }
+                        </p>
                     </div>
                 </div>
 
-                {/* Right column - placeholder for variance models */}
-                <div className="w-full lg:w-1/2 lg:pl-4">
-                    <div className="bg-neutral-800 p-4 rounded-lg shadow-lg mb-4">
-                        <h2 className="text-xl font-semibold text-neutral-300 mb-2">Variance Models</h2>
-                        <p className="text-neutral-400">This area is reserved for variance models (SMAV, EWMA, ARCH, GARCH).</p>
-                        <p className="text-neutral-400 mt-2">The simulation data can be accessed through the getSimulationData() function.</p>
-                    </div>
-
-                    {/* Placeholder for where the variance model charts will go */}
-                    <div className="bg-neutral-800 p-6 rounded-lg shadow-lg h-[620px] flex items-center justify-center">
-                        <div className="text-center text-neutral-400">
-                            <p className="text-lg mb-2">Variance Models Will Appear Here</p>
-                            <p>Implement separate components for SMAV, EWMA, ARCH, and GARCH models</p>
-                            <p className="mt-3 text-sm">Connect these components to receive price and returns data from this simulation</p>
-                        </div>
+                {/* Price Chart */}
+                <div className="bg-white dark:bg-neutral-800 p-4 rounded-lg shadow-lg mb-4 flex flex-col"
+                     onMouseMove={isRunning ? handleMouseMove : undefined}
+                     ref={panelRef}
+                     style={{height: '300px'}}
+                >
+                    <h2 className="text-lg font-semibold mb-1 text-gray-800 dark:text-neutral-300">Price Chart</h2>
+                    <div className="flex-grow w-full h-full">
+                        <Line data={priceChartData} options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    type: 'linear',
+                                    position: 'bottom',
+                                    display: false,
+                                    grid: {
+                                        display: false,
+                                    },
+                                    min: minTime,
+                                    max: maxTime
+                                },
+                                y: {
+                                    min: priceMin,
+                                    max: priceMax,
+                                    grid: {
+                                        color: 'rgba(0, 0, 0, 0.1)',
+                                    }
+                                },
+                            },
+                            plugins: {
+                                tooltip: {
+                                    enabled: false,
+                                },
+                            },
+                            animation: {
+                                duration: 0
+                            }
+                        }}/>
                     </div>
                 </div>
+
+                {/* Returns Chart */}
+                <div className="bg-white dark:bg-neutral-800 p-4 rounded-lg shadow-lg mb-4 flex flex-col"
+                     style={{height: '300px'}}
+                >
+                    <h2 className="text-lg font-semibold mb-1 text-gray-800 dark:text-neutral-300">Log Returns Chart (%)</h2>
+                    <div className="flex-grow w-full h-full">
+                        <Line data={returnsChartData} options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    type: 'linear',
+                                    position: 'bottom',
+                                    display: false,
+                                    grid: {
+                                        display: false,
+                                    },
+                                    min: minTime,
+                                    max: maxTime
+                                },
+                                y: {
+                                    min: returnMin,
+                                    max: returnMax,
+                                    grid: {
+                                        color: 'rgba(0, 0, 0, 0.1)',
+                                    },
+                                    ticks: {
+                                        callback: function (value) {
+                                            return value + '%';
+                                        }
+                                    }
+                                },
+                            },
+                            plugins: {
+                                tooltip: {
+                                    enabled: false,
+                                },
+                            },
+                            animation: {
+                                duration: 0
+                            }
+                        }}/>
+                    </div>
+                </div>
+            </div>
+
+            {/* Right column - Variance Models */}
+            <div className="w-full lg:w-1/2 lg:pl-4">
+                <VarianceModels returns={returns}/>
             </div>
         </div>
     );
