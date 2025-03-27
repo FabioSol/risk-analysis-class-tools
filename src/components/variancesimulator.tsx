@@ -185,7 +185,7 @@ export default function MouseMovementSimulator() {
                         {/* Play/Pause Button */}
                         <button
                             onClick={toggleSimulation}
-                            className={`px-4 py-1 rounded flex items-center ${
+                            className={`px-4 py-1 rounded-4xl flex items-center ${
                                 isRunning
                                     ? 'bg-red-600 hover:bg-red-700 text-white'
                                     : 'bg-green-600 hover:bg-green-700 text-white'
@@ -193,18 +193,16 @@ export default function MouseMovementSimulator() {
                         >
                             {isRunning ? (
                                 <>
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                         <rect x="6" y="4" width="3" height="12" rx="1" />
                                         <rect x="11" y="4" width="3" height="12" rx="1" />
                                     </svg>
-                                    Pause
                                 </>
                             ) : (
                                 <>
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
                                     </svg>
-                                    Play
                                 </>
                             )}
                         </button>

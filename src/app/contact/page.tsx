@@ -7,7 +7,7 @@ export default function ContactPage() {
             <p className="text-lg text-neutral-400 mb-8 text-center max-w-md">
                 Feel free to reach out through my social profiles or email!
             </p>
-            <div className="w-full max-w-md bg-neutral-800 p-6 rounded-lg shadow-lg">
+            <div className="w-full max-w-md bg-neutral-100 dark:bg-neutral-800 p-6 rounded-lg shadow-lg">
                 <div className="mb-4 flex items-center gap-3">
                     <a
                         href="https://www.linkedin.com/in/fabio-solorzano-flores"
