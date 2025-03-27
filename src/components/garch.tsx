@@ -62,7 +62,7 @@ const GARCH = ({ returns, defaultOmega = 0.000001, defaultAlpha = 0.09, defaultB
             setHalfLife(Math.log(0.5) / Math.log(lambdaDecay));
 
             // Initialize the first variance with unconditional variance (or long-run variance)
-            let previousVariance = longRunVariance;
+            let previousVariance = avgVariance;
             let previousSquaredReturn = returns[0].value ** 2;
 
             volatilityPoints.push({
